@@ -675,7 +675,7 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
               }}
                 onMouseDown={e => {
                   e.stopPropagation(); e.preventDefault();
-                  drag.current = { type:"resize-top", booking:b, origStart:+b.startHour, origEnd:+b.endHour };
+                  if (userCompany && b.company !== userCompany) return; drag.current = { type:"resize-top", booking:b, origStart:+b.startHour, origEnd:+b.endHour };
                   setGhost({ type:"resize-top", bookingId:b.id,
                     colIdx: dates.indexOf(b.date), date:b.date,
                     startHour:+b.startHour, endHour:+b.endHour });
@@ -702,12 +702,12 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
                   didMove.current = false;
                   const { hour } = toCell(e.clientX, e.clientY);
                   const grabOffsetHours = hour - +b.startHour;
-                  drag.current = { type:"move", booking:b, grabOffsetHours, origColIdx: dates.indexOf(b.date) };
+                  if (userCompany && b.company !== userCompany) return; drag.current = { type:"move", booking:b, grabOffsetHours, origColIdx: dates.indexOf(b.date) };
                   setGhost({ type:"move", bookingId:b.id,
                     colIdx: dates.indexOf(b.date), date:b.date,
                     startHour:+b.startHour, endHour:+b.endHour });
                 }}
-                onClick={e => { e.stopPropagation(); if (!didMove.current) onEditBooking(b); }}
+                onClick={e => { e.stopPropagation(); if (!didMove.current && (!userCompany || b.company === userCompany)) onEditBooking(b); }}
               />
 
               {/* Delete button — isolated from drag zones */}
@@ -726,7 +726,7 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
               }}
                 onMouseDown={e => {
                   e.stopPropagation(); e.preventDefault();
-                  drag.current = { type:"resize-bottom", booking:b, origStart:+b.startHour, origEnd:+b.endHour };
+                  if (userCompany && b.company !== userCompany) return; drag.current = { type:"resize-bottom", booking:b, origStart:+b.startHour, origEnd:+b.endHour };
                   setGhost({ type:"resize-bottom", bookingId:b.id,
                     colIdx: dates.indexOf(b.date), date:b.date,
                     startHour:+b.startHour, endHour:+b.endHour });

@@ -642,8 +642,15 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 function App() {
-  const [authed, setAuthed]           = useState(false);
-  const [userCompany, setUserCompany] = useState(null);
+  const _session = (() => {
+    try {
+      const s = JSON.parse(sessionStorage.getItem('rbk_session'));
+      if (s && s.company && Date.now() - s.loginAt < 10 * 60 * 1000) return s;
+    } catch {}
+    return null;
+  })();
+  const [authed, setAuthed]           = useState(!!_session);
+  const [userCompany, setUserCompany] = useState(_session?.company || null);
   const [bookings, setBookings]       = useState([]);
   const [anchor, setAnchor]           = useState(todayStr());
   const [newSlot, setNewSlot]         = useState(null);
@@ -675,7 +682,7 @@ function App() {
     setConfirmDeleteId(null); setEditBooking(null);
   };
 
-  if (!authed) return <LoginPage onLogin={company => { setAuthed(true); setUserCompany(company); }} />;
+  if (!authed) return <LoginPage onLogin={company => { setAuthed(true); setUserCompany(company); sessionStorage.setItem('rbk_session', JSON.stringify({ company, loginAt: Date.now() })); }} />;
 
   const listBookings = [...bookings].filter(b => b.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date) || +a.startHour - +b.startHour);
@@ -699,7 +706,7 @@ function App() {
           ))}
           <button style={S.addBtn} onClick={() => setNewSlot({})}>＋ 예약 등록</button>
           <button style={{ ...S.logoutBtn, borderColor:"#152771", color:"#152771" }} onClick={() => setShowHelp(true)}>❓ 도움말</button>
-          <button style={S.logoutBtn} onClick={() => { setAuthed(false); setUserCompany(null); }}>로그아웃</button>
+          <button style={S.logoutBtn} onClick={() => { setAuthed(false); setUserCompany(null); sessionStorage.removeItem('rbk_session'); }}>로그아웃</button>
         </div>
       </nav>
 

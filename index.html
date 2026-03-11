@@ -253,7 +253,9 @@ function BookingModal({ slot, existing, bookings, onSave, onUpdate, onDelete, on
         )}
         <div style={{ display:"flex", justifyContent:"flex-end", gap:10, marginTop:20 }}>
           {isEdit
-            ? <button onClick={() => onDelete(existing.id)} style={{ ...S.cancelBtn, background:"#ef4444", color:"#fff", border:"none" }}>삭제</button>
+            ? (userCompany && existing.company !== userCompany
+                ? <div style={{ fontSize:12, color:"#9ca3af", alignSelf:"center" }}>타 계열사 예약은 삭제할 수 없습니다.</div>
+                : <button onClick={() => onDelete(existing.id)} style={{ ...S.cancelBtn, background:"#ef4444", color:"#fff", border:"none" }}>삭제</button>)
             : <button onClick={handleClose} style={S.cancelBtn}>취소</button>
           }
           <button onClick={save} style={S.saveBtn}>{isEdit ? "수정 완료" : "예약 등록"}</button>
@@ -477,7 +479,7 @@ function HelpModal({ onClose }) {
 }
 
 // ─── CalendarGrid ─────────────────────────────────────────────────────────────
-function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEditBooking, onDeleteBooking }) {
+function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEditBooking, onDeleteBooking, userCompany }) {
   const DAY_NAMES = ["월","화","수","목","금","토","일"];
   const bodyRef   = useRef(null);
 
@@ -712,7 +714,8 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
               <div style={{ position:"absolute", top:0, right:0, width:22, height:22,
                 zIndex:25, display:"flex", alignItems:"center", justifyContent:"center",
                 cursor:"pointer" }}
-                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); onDeleteBooking(b.id); }}
+                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); if (userCompany && b.company !== userCompany) return; onDeleteBooking(b.id); }}
+                style={{ ...(userCompany && b.company !== userCompany ? { display:"none" } : {}) }}
               >
                 <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)", lineHeight:1 }}>✕</span>
               </div>
@@ -865,6 +868,7 @@ function App() {
                 onUpdateBooking={updateBookingInline}
                 onEditBooking={b => setEditBooking(b)}
                 onDeleteBooking={deleteBooking}
+                userCompany={userCompany}
               />
           }
         </>
@@ -880,7 +884,9 @@ function App() {
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
                     <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20, background:c.bg, color:c.text }}>{b.company}</span>
                     <span style={{ fontSize:13, color:"#6b7280", flex:1 }}>{formatDate(b.date)}</span>
-                    <button style={{ padding:"4px 10px", borderRadius:6, border:"1px solid #fee2e2", background:"#fff", color:"#ef4444", fontSize:12, cursor:"pointer", fontWeight:600 }} onClick={() => deleteBooking(b.id)}>삭제</button>
+                    {(!userCompany || b.company === userCompany) && (
+                      <button style={{ padding:"4px 10px", borderRadius:6, border:"1px solid #fee2e2", background:"#fff", color:"#ef4444", fontSize:12, cursor:"pointer", fontWeight:600 }} onClick={() => deleteBooking(b.id)}>삭제</button>
+                    )}
                   </div>
                   <div style={{ fontSize:16, fontWeight:700, color:"#1a1a2e", marginBottom:4 }}>{b.company}</div>
                   <div style={{ fontSize:13, color:"#6b7280" }}>

@@ -712,10 +712,9 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
 
               {/* Delete button — isolated from drag zones */}
               <div style={{ position:"absolute", top:0, right:0, width:22, height:22,
-                zIndex:25, display:"flex", alignItems:"center", justifyContent:"center",
-                cursor:"pointer" }}
-                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); if (userCompany && b.company !== userCompany) return; onDeleteBooking(b.id); }}
-                style={{ ...(userCompany && b.company !== userCompany ? { display:"none" } : {}) }}
+                zIndex:25, display: (userCompany && b.company !== userCompany) ? "none" : "flex",
+                alignItems:"center", justifyContent:"center", cursor:"pointer" }}
+                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); onDeleteBooking(b.id); }}
               >
                 <span style={{ fontSize:11, color:"rgba(0,0,0,0.4)", lineHeight:1 }}>✕</span>
               </div>

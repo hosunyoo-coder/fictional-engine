@@ -130,6 +130,7 @@ function BookingModal({ slot, existing, bookings, onSave, onUpdate, onDelete, on
     startHour: String(slot?.startHour ?? 9), endHour: String(slot?.endHour ?? 10),
     company: userCompany || COMPANIES[0], requester: "", email: "", phone: "",
   });
+  const [repeatWeeks, setRepeatWeeks] = useState(0); // 0 = no repeat
   const [errs, setErrs]       = useState({}); // { field: message }
   const [shake, setShake]     = useState(false);
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrs(e => { const n={...e}; delete n[k]; return n; }); };
@@ -156,10 +157,25 @@ function BookingModal({ slot, existing, bookings, onSave, onUpdate, onDelete, on
   const save = () => {
     const e = collectErrors();
     if (Object.keys(e).length > 0) return triggerShake(e);
-    const b = isEdit ? { ...form } : { ...form, id: Date.now() };
-    const conflict = bookings.find(x => bookingsOverlap(x, b) && x.id !== b.id);
-    if (conflict) return triggerShake({ conflict: `해당 시간에 이미 ${conflict.company} (${conflict.requester}) 예약이 있습니다.` });
-    isEdit ? onUpdate(b) : onSave(b);
+    if (isEdit) {
+      const b = { ...form };
+      const conflict = bookings.find(x => bookingsOverlap(x, b) && x.id !== b.id);
+      if (conflict) return triggerShake({ conflict: `해당 시간에 이미 ${conflict.company} (${conflict.requester}) 예약이 있습니다.` });
+      return onUpdate(b);
+    }
+    // Generate repeated bookings
+    const groupId = repeatWeeks > 0 ? `grp_${Date.now()}` : null;
+    const entries = [];
+    for (let w = 0; w < Math.max(1, repeatWeeks); w++) {
+      const d = new Date(form.date);
+      d.setDate(d.getDate() + w * 7);
+      const dateStr = d.toISOString().slice(0, 10);
+      const b = { ...form, date: dateStr, id: Date.now() + w, ...(groupId ? { repeatGroupId: groupId, repeatTotal: repeatWeeks } : {}) };
+      const conflict = bookings.find(x => bookingsOverlap(x, b) && x.id !== b.id);
+      if (conflict) return triggerShake({ conflict: `${dateStr} 해당 시간에 이미 ${conflict.company} (${conflict.requester}) 예약이 있습니다.` });
+      entries.push(b);
+    }
+    onSave(entries);
   };
 
   const handleClose = () => {
@@ -207,6 +223,26 @@ function BookingModal({ slot, existing, bookings, onSave, onUpdate, onDelete, on
                   set("phone", formatted);
                   if (errField==="phone") setErrField("");
                 }} placeholder="010-1234-5678" style={inputStyle("phone")} /></Field>
+          {!isEdit && (
+            <Field label="🔁 매주 반복" full>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <select value={repeatWeeks} onChange={e => setRepeatWeeks(+e.target.value)} style={{ ...S.input, width:"auto", minWidth:160 }}>
+                  <option value={0}>반복 없음</option>
+                  <option value={2}>2주 반복</option>
+                  <option value={3}>3주 반복</option>
+                  <option value={4}>4주 반복</option>
+                  <option value={6}>6주 반복</option>
+                  <option value={8}>8주 반복</option>
+                  <option value={12}>12주 반복</option>
+                </select>
+                {repeatWeeks > 0 && (
+                  <span style={{ fontSize:12, color:"#6b7280" }}>
+                    총 {repeatWeeks}개 예약 등록 ({form.date} ~ {(() => { const d = new Date(form.date); d.setDate(d.getDate() + (repeatWeeks-1)*7); return d.toISOString().slice(0,10); })()})
+                  </span>
+                )}
+              </div>
+            </Field>
+          )}
         </div>
         {errMessages.length > 0 && (
           <div style={{ marginTop:8 }}>
@@ -240,6 +276,85 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
         <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
           <button onMouseDown={onCancel} style={{ ...S.cancelBtn, minWidth:100 }}>취소</button>
           <button onMouseDown={onConfirm} style={{ ...S.cancelBtn, minWidth:100, background:"#ef4444", color:"#fff", border:"none" }}>삭제</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── WhatsNewModal ────────────────────────────────────────────────────────────
+const WHATS_NEW_VERSION = "v1.4";
+const WHATS_NEW = [
+  {
+    version: "v1.4",
+    date: "2026.03.11",
+    tag: "신규 기능",
+    tagColor: "#10B981",
+    items: [
+      "🔁 반복 예약 기능 추가 — 2주 / 3주 / 4주 / 6주 / 8주 / 12주 반복 등록 가능",
+      "🔒 로그인 유지 — 새로고침 시 10분간 자동 로그인 유지",
+      "🐛 다른 주로 이동 시 예약 블록이 왼쪽에 남는 버그 수정",
+    ],
+  },
+  {
+    version: "v1.3",
+    date: "2026.03.10",
+    tag: "신규 기능",
+    tagColor: "#10B981",
+    items: [
+      "🔐 계열사별 비밀번호 분리 (Private Equity / Asset Management / Rockbridge Network Korea)",
+      "🏷️ 로그인 후 상단에 계열사 뱃지 표시",
+      "📖 도움말 버튼 및 사용 가이드 추가",
+      "🌐 Firebase 연동으로 사용자 간 예약 데이터 실시간 공유",
+    ],
+  },
+  {
+    version: "v1.2",
+    date: "2026.03.09",
+    tag: "개선",
+    tagColor: "#3B82F6",
+    items: [
+      "🎨 메인 색상 #152771 적용",
+      "📏 캘린더 그리드 높이 확대 및 예약 블록 텍스트 중앙 정렬",
+      "✅ 예약 등록 시 담당자 / 이메일 / 전화번호 필수 입력 유효성 검사 추가",
+      "📱 전화번호 자동 하이픈 포매팅",
+      "🗑️ 삭제 확인 커스텀 팝업 추가",
+    ],
+  },
+];
+
+function WhatsNewModal({ onClose }) {
+  return (
+    <div style={{ ...S.overlay, alignItems:"flex-start", paddingTop:40, overflowY:"auto" }} onClick={onClose}>
+      <div style={{ ...S.modalCard, maxWidth:560, width:"100%" }} onClick={e => e.stopPropagation()}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <div>
+            <h2 style={{ margin:0, fontSize:20, fontWeight:700, color:"#1a1a2e" }}>🆕 업데이트 소식</h2>
+            <p style={{ margin:"4px 0 0", fontSize:13, color:"#9ca3af" }}>최신 변경사항을 확인하세요</p>
+          </div>
+          <button onClick={onClose} style={S.closeBtn}>✕</button>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          {WHATS_NEW.map((ver, i) => (
+            <div key={i} style={{ borderRadius:12, border:"1px solid #e5e7eb", overflow:"hidden" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px",
+                background: i === 0 ? "#f0f4ff" : "#f8fafc", borderBottom:"1px solid #e5e7eb" }}>
+                <span style={{ fontWeight:700, fontSize:14, color:"#1a1a2e" }}>{ver.version}</span>
+                <span style={{ fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:20,
+                  background: ver.tagColor, color:"#fff" }}>{ver.tag}</span>
+                <span style={{ fontSize:12, color:"#9ca3af", marginLeft:"auto" }}>{ver.date}</span>
+              </div>
+              <ul style={{ margin:0, padding:"12px 16px 12px 32px", display:"flex", flexDirection:"column", gap:6 }}>
+                {ver.items.map((item, j) => (
+                  <li key={j} style={{ fontSize:13, color:"#374151", lineHeight:1.6 }}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop:20, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{ fontSize:12, color:"#9ca3af" }}>다음 로그인 시 다시 표시되지 않습니다</span>
+          <button onClick={onClose} style={S.saveBtn}>확인</button>
         </div>
       </div>
     </div>
@@ -569,7 +684,7 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
               <div style={{ position:"absolute", inset:0, borderRadius:7, overflow:"hidden", pointerEvents:"none",
                 display:"flex", alignItems:"center" }}>
                 <div style={{ padding:"0 24px 0 10px", width:"100%" }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:c.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.company}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:c.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{b.repeatGroupId ? "🔁 " : ""}{b.company}</div>
                   <div style={{ fontSize:12, color:c.border, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>{b.requester}{b.phone ? ` · ${b.phone}` : ""}</div>
                   <div style={{ fontSize:12, color:c.border, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:1 }}>{b.email || ""}</div>
                 </div>
@@ -658,15 +773,18 @@ function App() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [loading, setLoading]         = useState(true);
   const [view, setView]               = useState("week");
-  const [showHelp, setShowHelp]         = useState(false);
+  const [showHelp, setShowHelp]           = useState(false);
+  const [showWhatsNew, setShowWhatsNew]   = useState(false);
+  const [hasUnread, setHasUnread]         = useState(localStorage.getItem('whatsNewSeen') !== WHATS_NEW_VERSION);
   const today = todayStr();
   const dates = weekDates(anchor);
 
   const refresh = useCallback(async () => { setBookings(await loadBookings()); setLoading(false); }, []);
   useEffect(() => { refresh(); }, [refresh]);
   useEffect(() => { const id = setInterval(refresh, 30000); return () => clearInterval(id); }, [refresh]);
-  const addBooking = async b => {
-    const next = [...bookings, b]; setBookings(next); await saveBookings(next); setNewSlot(null);
+  const addBooking = async entries => {
+    const arr = Array.isArray(entries) ? entries : [entries];
+    const next = [...bookings, ...arr]; setBookings(next); await saveBookings(next); setNewSlot(null);
   };
   const updateBooking = async b => {
     const next = bookings.map(x => x.id === b.id ? b : x);
@@ -705,6 +823,12 @@ function App() {
             </button>
           ))}
           <button style={S.addBtn} onClick={() => setNewSlot({})}>＋ 예약 등록</button>
+          <div style={{ position:"relative", display:"inline-block" }}>
+            <button style={{ ...S.logoutBtn, borderColor:"#152771", color:"#152771" }} onClick={() => { setShowWhatsNew(true); setHasUnread(false); localStorage.setItem('whatsNewSeen', WHATS_NEW_VERSION); }}>
+              🔔 업데이트
+            </button>
+            {hasUnread && <span style={{ position:"absolute", top:-4, right:-4, width:10, height:10, borderRadius:"50%", background:"#ef4444", border:"2px solid #fff" }} />}
+          </div>
           <button style={{ ...S.logoutBtn, borderColor:"#152771", color:"#152771" }} onClick={() => setShowHelp(true)}>❓ 도움말</button>
           <button style={S.logoutBtn} onClick={() => { setAuthed(false); setUserCompany(null); sessionStorage.removeItem('rbk_session'); }}>로그아웃</button>
         </div>
@@ -775,6 +899,7 @@ function App() {
       {editBooking !== null && confirmDeleteId === null && <BookingModal existing={editBooking} bookings={bookings} onUpdate={updateBooking} onDelete={id => deleteBooking(id)} onClose={() => setEditBooking(null)} userCompany={userCompany} />}
       {confirmDeleteId !== null && <DeleteConfirmModal onConfirm={confirmDelete} onCancel={() => setConfirmDeleteId(null)} />}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showWhatsNew && <WhatsNewModal onClose={() => { localStorage.setItem('whatsNewSeen', WHATS_NEW_VERSION); setShowWhatsNew(false); }} />}
     </div>
   );
 }

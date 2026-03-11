@@ -490,6 +490,7 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
     const isDragging = ghost && ghost.bookingId === b.id;
     const g  = isDragging ? ghost : null;
     const ci = g ? g.colIdx : dates.indexOf(b.date);
+    if (ci < 0) return null; // not in current week — hide
     const s  = g ? g.startHour : +b.startHour;
     const e  = g ? g.endHour   : +b.endHour;
     return { ...toPixels(ci, s, e), isDragging, dispStart: s, dispEnd: e };
@@ -533,7 +534,9 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
         {/* Booking chips */}
         {bookings.map(b => {
           const c = COLORS[b.company] || COLORS["Others"];
-          const { left, top, width, height, isDragging, dispStart, dispEnd } = chipPos(b);
+          const pos = chipPos(b);
+          if (!pos) return null;
+          const { left, top, width, height, isDragging, dispStart, dispEnd } = pos;
           return (
             <div key={b.id} style={{
               position:"absolute", left, top, width, height,

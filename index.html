@@ -46,6 +46,8 @@ const ROOMS     = ["대회의실"];
 const HOUR_START = 8;
 const HOUR_END   = 21;
 const HOURS      = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => i + HOUR_START);
+const HALF_HOURS = Array.from({ length: (HOUR_END - HOUR_START) * 2 }, (_, i) => HOUR_START + i * 0.5);
+const fmtHalf = h => { const hh = Math.floor(h); const mm = h % 1 === 0.5 ? "30" : "00"; return `${hh}:${mm}`; };
 const ROW_H      = 80;   // px per hour
 const COL_COUNT  = 7;
 const TIME_COL_W = 52;
@@ -204,8 +206,8 @@ function BookingModal({ slot, existing, bookings, onSave, onUpdate, onDelete, on
         <div style={S.formGrid}>
           <Field label="날짜"><input type="date" value={form.date} min={todayStr()} onChange={e => set("date", e.target.value)} style={S.input} /></Field>
           <Field label="회의실"><select value={form.room} onChange={e => set("room", e.target.value)} style={S.input}>{ROOMS.map(r => <option key={r}>{r}</option>)}</select></Field>
-          <Field label="시작 시간"><select value={form.startHour} onChange={e => set("startHour", e.target.value)} style={S.input}>{HOURS.slice(0,-1).map(h => <option key={h} value={h}>{h}:00</option>)}</select></Field>
-          <Field label="종료 시간"><select value={form.endHour} onChange={e => set("endHour", e.target.value)} style={S.input}>{HOURS.slice(1).map(h => <option key={h} value={h}>{h}:00</option>)}</select></Field>
+          <Field label="시작 시간"><select value={form.startHour} onChange={e => set("startHour", e.target.value)} style={S.input}>{HALF_HOURS.slice(0,-1).map(h => <option key={h} value={h}>{fmtHalf(h)}</option>)}</select></Field>
+          <Field label="종료 시간"><select value={form.endHour} onChange={e => set("endHour", e.target.value)} style={S.input}>{HALF_HOURS.slice(1).map(h => <option key={h} value={h}>{fmtHalf(h)}</option>)}</select></Field>
           <Field label="계열사">
             {userCompany
               ? <div style={{ ...S.input, background:"#f3f4f6", color:"#374151", cursor:"not-allowed", display:"flex", alignItems:"center" }}>{userCompany}</div>
@@ -285,8 +287,17 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
 }
 
 // ─── WhatsNewModal ────────────────────────────────────────────────────────────
-const WHATS_NEW_VERSION = "v1.5";
+const WHATS_NEW_VERSION = "v1.6";
 const WHATS_NEW = [
+  {
+    version: "v1.6",
+    date: "2026.03.12",
+    tag: "기능 개선",
+    tagColor: "#3B82F6",
+    items: [
+      "⏱️ 예약 시간을 30분 단위로 설정 가능 (시작/종료 시간 드롭다운)",
+    ],
+  },
   {
     version: "v1.5",
     date: "2026.03.11",
@@ -511,7 +522,7 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
       left:   TIME_COL_W + colIdx * colW + 2,
       top:    (startHour - HOUR_START) * ROW_H,
       width:  colW - 4,
-      height: (endHour - startHour) * ROW_H,
+      height: Math.max((endHour - startHour) * ROW_H, ROW_H * 0.5),
     };
   };
 
@@ -734,7 +745,7 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
               display:"flex", alignItems:"center", justifyContent:"center",
             }}>
               <span style={{ fontSize:11, fontWeight:700, color:"#152771" }}>
-                {ghost.startHour}:00 → {ghost.endHour}:00
+                {fmtHalf(ghost.startHour)} → {fmtHalf(ghost.endHour)}
               </span>
             </div>
           );

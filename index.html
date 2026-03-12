@@ -519,9 +519,9 @@ function CalendarGrid({ dates, bookings, today, onNewSlot, onUpdateBooking, onEd
   const toPixels = (colIdx, startHour, endHour) => {
     const colW = getColW();
     return {
-      left:   TIME_COL_W + colIdx * colW + 2,
+      left:   TIME_COL_W + colIdx * colW + 1,
       top:    (startHour - HOUR_START) * ROW_H,
-      width:  colW - 4,
+      width:  colW - 2,
       height: Math.max((endHour - startHour) * ROW_H, ROW_H * 0.5),
     };
   };

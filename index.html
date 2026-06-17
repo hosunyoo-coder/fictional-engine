@@ -47,7 +47,7 @@ const HOUR_START = 8;
 const HOUR_END   = 21;
 const HOURS      = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => i + HOUR_START);
 const HALF_HOURS = Array.from({ length: (HOUR_END - HOUR_START) * 2 }, (_, i) => HOUR_START + i * 0.5);
-const fmtHalf = h => { const hh = Math.floor(h); const mm = h % 1 === 0.5 ? "30" : "00"; return `${hh}:${mm}`; };
+const fmtHalf = h => { const hh = Math.floor(h); const mm = h % 1 === 0.5 ? "30" : "00"; return hh + ":" + mm; };
 const ROW_H      = 80;   // px per hour
 const COL_COUNT  = 7;
 const TIME_COL_W = 52;
